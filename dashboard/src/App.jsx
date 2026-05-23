@@ -1,131 +1,252 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
-function App() {
-  const [vitals, setVitals] = useState(null);
+const PATIENT = {
+  id: "P-001",
+  name: "Simulated Patient",
+  age: 54,
+  location: "OR 3",
+};
 
-  async function fetchVitals() {
-    try {
-      const response = await fetch("http://localhost:5086/vitals");
-      const data = await response.json();
-      setVitals(data);
-    } catch (error) {
-      console.error("Error fetching vitals:", error);
-    }
+const DEVICE = {
+  id: "MON-001",
+  name: "Multiparametric Monitor",
+  vendor: "Simulated Mindray",
+  status: "Connected",
+};
+
+const VITAL_CONFIG = {
+  heartRate: {
+    label: "Heart Rate",
+    unit: "bpm",
+    normal: [60, 100],
+    warning: [50, 120],
+  },
+  spo2: {
+    label: "SpO₂",
+    unit: "%",
+    normal: [95, 100],
+    warning: [90, 100],
+  },
+  systolicBP: {
+    label: "Systolic BP",
+    unit: "mmHg",
+    normal: [90, 120],
+    warning: [80, 140],
+  },
+  diastolicBP: {
+    label: "Diastolic BP",
+    unit: "mmHg",
+    normal: [60, 80],
+    warning: [50, 95],
+  },
+  respiratoryRate: {
+    label: "Respiratory Rate",
+    unit: "rpm",
+    normal: [12, 20],
+    warning: [10, 28],
+  },
+  temperature: {
+    label: "Temperature",
+    unit: "°C",
+    normal: [36, 37.5],
+    warning: [35, 38.5],
+  },
+};
+
+function getRandomNumber(min, max, decimals = 0) {
+  const value = Math.random() * (max - min) + min;
+  return Number(value.toFixed(decimals));
+}
+
+function generateVitals() {
+  return {
+    heartRate: getRandomNumber(45, 145),
+    spo2: getRandomNumber(82, 100),
+    systolicBP: getRandomNumber(75, 160),
+    diastolicBP: getRandomNumber(45, 105),
+    respiratoryRate: getRandomNumber(8, 32),
+    temperature: getRandomNumber(34.5, 39.5, 1),
+  };
+}
+
+function getVitalStatus(value, config) {
+  const [normalMin, normalMax] = config.normal;
+  const [warningMin, warningMax] = config.warning;
+
+  if (value >= normalMin && value <= normalMax) {
+    return "normal";
   }
 
+  if (value >= warningMin && value <= warningMax) {
+    return "warning";
+  }
+
+  return "critical";
+}
+
+function formatTime(date) {
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function App() {
+  const [vitals, setVitals] = useState(generateVitals());
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [alarmLog, setAlarmLog] = useState([]);
+
+  const vitalStatuses = useMemo(() => {
+    return Object.entries(vitals).map(([key, value]) => {
+      const config = VITAL_CONFIG[key];
+      const status = getVitalStatus(value, config);
+
+      return {
+        key,
+        value,
+        status,
+        ...config,
+      };
+    });
+  }, [vitals]);
+
+  const activeAlarms = vitalStatuses.filter((vital) => vital.status !== "normal");
+
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      fetchVitals();
-    }, 0);
-
     const interval = setInterval(() => {
-      fetchVitals();
-    }, 1000);
+      const newVitals = generateVitals();
+      const timestamp = new Date();
 
-    return () => {
-      clearTimeout(timeout);
-      clearInterval(interval);
-    };
+      const newAlarmEvents = Object.entries(newVitals)
+        .map(([key, value]) => {
+          const config = VITAL_CONFIG[key];
+          const status = getVitalStatus(value, config);
+
+          if (status === "normal") {
+            return null;
+          }
+
+          return {
+            id: crypto.randomUUID(),
+            time: formatTime(timestamp),
+            vital: config.label,
+            value,
+            unit: config.unit,
+            severity: status,
+          };
+        })
+        .filter(Boolean);
+
+      setVitals(newVitals);
+      setLastUpdate(timestamp);
+
+      if (newAlarmEvents.length > 0) {
+        setAlarmLog((previousLog) =>
+          [...newAlarmEvents, ...previousLog].slice(0, 20)
+        );
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
-    <main className="dashboard">
-      <section className="monitor">
-        <header className="monitor-header">
+    <main className="app">
+      <section className="hero">
+        <div>
+          <p className="eyebrow">Medical Device Playground</p>
+          <h1>Simulated Patient Monitoring Dashboard</h1>
+          <p className="subtitle">
+            Random vital signs, range-based alarms, severity classification, and
+            basic event traceability.
+          </p>
+        </div>
+
+        <div className="connection-card">
+          <span className="connection-dot" />
           <div>
-            <p className="eyebrow">Medical Device Playground</p>
-            <h1>Patient Monitor</h1>
+            <strong>{DEVICE.status}</strong>
+            <p>Last update: {formatTime(lastUpdate)}</p>
           </div>
+        </div>
+      </section>
 
-          <div className="live-pill">
-            <span></span>
-            Live telemetry
-          </div>
-        </header>
+      <section className="context-grid">
+        <article className="info-card">
+          <h2>Patient</h2>
+          <p>{PATIENT.name}</p>
+          <span>ID: {PATIENT.id}</span>
+          <span>Age: {PATIENT.age}</span>
+          <span>Location: {PATIENT.location}</span>
+        </article>
 
-        {!vitals ? (
-          <p className="loading">Loading vitals...</p>
+        <article className="info-card">
+          <h2>Device</h2>
+          <p>{DEVICE.name}</p>
+          <span>ID: {DEVICE.id}</span>
+          <span>Vendor: {DEVICE.vendor}</span>
+          <span>Status: {DEVICE.status}</span>
+        </article>
+
+        <article className={`summary-card ${activeAlarms.length > 0 ? "has-alarms" : ""}`}>
+          <h2>Alarm Summary</h2>
+          <p>{activeAlarms.length}</p>
+          <span>
+            {activeAlarms.length === 0
+              ? "No active alarms"
+              : "Active alarm condition detected"}
+          </span>
+        </article>
+      </section>
+
+      <section className="vitals-grid">
+        {vitalStatuses.map((vital) => (
+          <article key={vital.key} className={`vital-card ${vital.status}`}>
+            <div className="vital-header">
+              <h2>{vital.label}</h2>
+              <span className={`status-badge ${vital.status}`}>
+                {vital.status}
+              </span>
+            </div>
+
+            <p className="vital-value">
+              {vital.value}
+              <span>{vital.unit}</span>
+            </p>
+
+            <p className="range-text">
+              Normal range: {vital.normal[0]} to {vital.normal[1]} {vital.unit}
+            </p>
+          </article>
+        ))}
+      </section>
+
+      <section className="alarm-log">
+        <div className="section-header">
+          <h2>Alarm Log</h2>
+          <span>Last 20 events</span>
+        </div>
+
+        {alarmLog.length === 0 ? (
+          <p className="empty-log">No alarm events recorded yet.</p>
         ) : (
-          <>
-            <section className="patient-bar">
-              <div>
-                <span>Patient</span>
-                <strong>{vitals.patientId}</strong>
-              </div>
-
-              <div>
-                <span>Source</span>
-                <strong>Simulated monitor</strong>
-              </div>
-
-              <div>
-                <span>Last update</span>
-                <strong>{new Date(vitals.timestamp).toLocaleTimeString()}</strong>
-              </div>
-            </section>
-
-            <section className="vitals-grid">
-              <VitalCard
-                label="Heart Rate"
-                value={vitals.heartRate}
-                unit="bpm"
-                status={getHeartRateStatus(vitals.heartRate)}
-              />
-
-              <VitalCard
-                label="SpO₂"
-                value={vitals.spo2}
-                unit="%"
-                status={getSpo2Status(vitals.spo2)}
-              />
-
-              <VitalCard
-                label="Blood Pressure"
-                value={`${vitals.systolic}/${vitals.diastolic}`}
-                unit="mmHg"
-                status={getBloodPressureStatus(vitals.systolic)}
-              />
-            </section>
-          </>
+          <div className="log-list">
+            {alarmLog.map((event) => (
+              <article key={event.id} className={`log-item ${event.severity}`}>
+                <span>{event.time}</span>
+                <strong>{event.severity.toUpperCase()}</strong>
+                <p>
+                  {event.vital}: {event.value} {event.unit}
+                </p>
+              </article>
+            ))}
+          </div>
         )}
       </section>
     </main>
   );
-}
-
-function VitalCard({ label, value, unit, status }) {
-  return (
-    <article className={`vital-card ${status.className}`}>
-      <div className="card-top">
-        <p>{label}</p>
-        <span>{status.text}</span>
-      </div>
-
-      <div className="vital-value">
-        <strong>{value}</strong>
-        <span>{unit}</span>
-      </div>
-    </article>
-  );
-}
-
-function getHeartRateStatus(value) {
-  if (value > 100) return { text: "High", className: "warning" };
-  if (value < 60) return { text: "Low", className: "warning" };
-  return { text: "Normal", className: "normal" };
-}
-
-function getSpo2Status(value) {
-  if (value < 92) return { text: "Critical", className: "critical" };
-  if (value < 95) return { text: "Low", className: "warning" };
-  return { text: "Normal", className: "normal" };
-}
-
-function getBloodPressureStatus(systolic) {
-  if (systolic > 130) return { text: "High", className: "warning" };
-  if (systolic < 90) return { text: "Low", className: "warning" };
-  return { text: "Normal", className: "normal" };
 }
 
 export default App;
