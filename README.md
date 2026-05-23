@@ -1,6 +1,6 @@
 # Medical Device Playground
 
-Experimental healthcare IT sandbox focused on medical device integration, telemetry, and interoperability.
+Experimental healthcare IT sandbox focused on medical device integration, telemetry, alarms, and interoperability.
 
 ## Overview
 
@@ -12,9 +12,29 @@ The project currently includes:
 * React monitoring dashboard
 * Simulated patient telemetry
 * Real-time vital sign updates
+* Patient and device context
+* Alarm severity classification
+* Basic alarm event log
 * Responsive monitor-style UI
 
 The long-term goal is to expand the platform into a broader interoperability and healthcare integration playground, including HL7 messaging, FHIR APIs, waveform simulation, device states, and clinical workflow experimentation.
+
+---
+
+## Current Version
+
+### v1.1
+
+This version adds more clinical and integration context to the monitoring dashboard.
+
+Main additions:
+
+* Simulated patient information
+* Simulated device information
+* Alarm severity levels: normal, warning, critical
+* Alarm summary panel
+* Alarm event log with timestamps
+* Improved dashboard layout
 
 ---
 
@@ -30,9 +50,13 @@ The long-term goal is to expand the platform into a broader interoperability and
 ### Frontend
 
 * React + Vite dashboard
-* Real-time telemetry polling
+* Real-time telemetry polling / simulated updates
 * Monitor-inspired UI
+* Patient context display
+* Device context display
 * Vital sign status indicators
+* Alarm severity classification
+* Alarm event log
 * Responsive layout
 
 ### Simulated Vitals
@@ -40,7 +64,21 @@ The long-term goal is to expand the platform into a broader interoperability and
 * Heart rate
 * SpO₂
 * Blood pressure
+* Respiratory rate
+* Temperature
 * Timestamped telemetry
+
+### Alarm Logic
+
+The dashboard classifies vital signs using basic predefined ranges.
+
+Alarm states include:
+
+* Normal
+* Warning
+* Critical
+
+The app also stores recent alarm events in a basic log to simulate clinical event traceability.
 
 ---
 
@@ -75,80 +113,3 @@ medical-device-playground/
 ├── dashboard/
 │
 └── MedicalDevicePlayground.sln
-```
-
----
-
-## Running the Project
-
-### Backend API
-
-```bash
-cd DeviceSimulator.Api
-dotnet run
-```
-
-API available at:
-
-```txt
-http://localhost:5086
-```
-
-Telemetry endpoint:
-
-```txt
-http://localhost:5086/vitals
-```
-
----
-
-### Frontend Dashboard
-
-```bash
-cd dashboard
-npm install
-npm run dev
-```
-
-Dashboard available at:
-
-```txt
-http://localhost:5173
-```
-
----
-
-## Roadmap
-
-Planned features include:
-
-* Alarm states
-* ECG waveform simulation
-* Multi-patient monitoring
-* SignalR real-time streaming
-* HL7 ORU message generation
-* FHIR interoperability experiments
-* Device connection states
-* Docker support
-* Database integration
-* Clinical workflow simulation
-
----
-
-## Motivation
-
-This project was created as a way to explore the intersection between:
-
-* Biomedical engineering
-* Healthcare IT
-* Medical device integration
-* Clinical interoperability
-* Real-time systems
-
-It is heavily inspired by real hospital environments and the challenges involved in connecting clinical devices, patient data, and healthcare workflows.
-
----
-
-## License
-
-MIT License
