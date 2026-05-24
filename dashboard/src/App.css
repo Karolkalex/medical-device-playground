@@ -360,3 +360,23 @@ h1 {
 .alarm-summary-card.has-alarms {
   border-color: #f59e0b;
 }
+
+.clear-log-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  background: #334155;
+  color: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.clear-log-button:hover {
+  background: #475569;
+}
+
+.clear-log-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

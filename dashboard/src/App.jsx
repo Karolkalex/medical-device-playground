@@ -187,7 +187,7 @@ function App() {
 
   const interval = setInterval(() => {
     fetchVitals();
-  }, 1000);
+  }, 500);
 
   return () => {
     clearTimeout(initialFetch);
@@ -294,9 +294,19 @@ function App() {
 
     <section className="alarm-log">
       <div className="section-header">
-        <h2>Alarm Log</h2>
-        <span>Last 20 events</span>
-      </div>
+  <div>
+    <h2>Alarm Log</h2>
+    <span>Last 20 events</span>
+  </div>
+
+  <button
+    className="clear-log-button"
+    onClick={() => setAlarmLog([])}
+    disabled={alarmLog.length === 0}
+  >
+    Clear log
+  </button>
+</div>
 
       {alarmLog.length === 0 ? (
         <p className="empty-log">No alarm events recorded yet.</p>

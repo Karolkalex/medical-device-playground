@@ -122,12 +122,12 @@ static int GenerateOccasionalAbnormalValue(
 {
     var roll = Random.Shared.Next(1, 101);
 
-    if (roll <= 75)
+    if (roll <= 95)
     {
         return Random.Shared.Next(normalMin, normalMax + 1);
     }
 
-    if (roll <= 88)
+    if (roll <= 97)
     {
         return Random.Shared.Next(abnormalLowMin, abnormalLowMax + 1);
     }
