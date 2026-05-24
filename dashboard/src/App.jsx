@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
 const API_URL = "http://localhost:5086/vitals";
@@ -110,7 +110,8 @@ function App() {
   const [vitals, setVitals] = useState(INITIAL_VITALS);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [alarmLog, setAlarmLog] = useState([]);
-  const [, setAbnormalCounters] = useState({});
+  const abnormalCountersRef = useRef({});
+  const loggedActiveAlarmsRef = useRef(new Set());
   const [deviceStatus, setDeviceStatus] = useState("Connecting");
   const [error, setError] = useState("");
 
@@ -145,45 +146,44 @@ function App() {
       const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
 
       const ALARM_CONFIRMATION_READINGS = 3;
+      const newAlarmEvents = [];
 
-      setAbnormalCounters((previousCounters) => {
-        const updatedCounters = {};
-        const newAlarmEvents = [];
+      Object.entries(newVitals).forEach(([key, value]) => {
+        const config = VITAL_CONFIG[key];
+        const status = getVitalStatus(value, config);
 
-        Object.entries(newVitals).forEach(([key, value]) => {
-          const config = VITAL_CONFIG[key];
-          const status = getVitalStatus(value, config);
-
-          if (status === "normal" || status === "unknown") {
-            updatedCounters[key] = 0;
-            return;
-          }
-
-          const previousCount = previousCounters[key] ?? 0;
-          const newCount = previousCount + 1;
-
-          updatedCounters[key] = newCount;
-
-          if (newCount === ALARM_CONFIRMATION_READINGS) {
-            newAlarmEvents.push({
-              id: crypto.randomUUID(),
-              time: formatTime(timestamp),
-              vital: config.label,
-              value,
-              unit: config.unit,
-              severity: status,
-            });
-          }
-        });
-
-        if (newAlarmEvents.length > 0) {
-          setAlarmLog((previousLog) =>
-            [...newAlarmEvents, ...previousLog].slice(0, 20),
-          );
+        if (status === "normal" || status === "unknown") {
+          abnormalCountersRef.current[key] = 0;
+          loggedActiveAlarmsRef.current.delete(key);
+          return;
         }
 
-        return updatedCounters;
+        const previousCount = abnormalCountersRef.current[key] ?? 0;
+        const newCount = previousCount + 1;
+
+        abnormalCountersRef.current[key] = newCount;
+
+        const wasAlreadyLogged = loggedActiveAlarmsRef.current.has(key);
+
+        if (newCount >= ALARM_CONFIRMATION_READINGS && !wasAlreadyLogged) {
+          newAlarmEvents.push({
+            id: crypto.randomUUID(),
+            time: formatTime(timestamp),
+            vital: config.label,
+            value,
+            unit: config.unit,
+            severity: status,
+          });
+
+          loggedActiveAlarmsRef.current.add(key);
+        }
       });
+
+      if (newAlarmEvents.length > 0) {
+        setAlarmLog((previousLog) =>
+          [...newAlarmEvents, ...previousLog].slice(0, 20),
+        );
+      }
 
       setVitals(newVitals);
       setLastUpdate(timestamp);

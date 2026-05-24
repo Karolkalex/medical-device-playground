@@ -185,7 +185,7 @@ static double GenerateSmoothOccasionalAbnormalTemperature(double currentValue)
 }
 
 
-static double GenerateOccasionalAbnormalTemperature()
+/*static double GenerateOccasionalAbnormalTemperature()
 {
     var shouldGenerateAbnormal = Random.Shared.NextDouble() < 0.25;
 
@@ -202,9 +202,9 @@ static double GenerateOccasionalAbnormalTemperature()
     }
 
     return Math.Round(37.6 + Random.Shared.NextDouble() * 1.9, 1);
-}
+}*/
 
-static int GenerateOccasionalAbnormalValue(
+/* static int GenerateOccasionalAbnormalValue(
     int normalMin,
     int normalMax,
     int abnormalLowMin,
@@ -225,9 +225,9 @@ static int GenerateOccasionalAbnormalValue(
     }
 
     return Random.Shared.Next(abnormalHighMin, abnormalHighMax + 1);
-}
+}*/
 
-static int GenerateSmoothValue(
+/*static int GenerateSmoothValue(
     int currentValue,
     int normalMin,
     int normalMax,
@@ -266,6 +266,6 @@ static int GenerateSmoothValue(
     }
 
     return currentValue;
-}
+}*/
 
 app.Run();
