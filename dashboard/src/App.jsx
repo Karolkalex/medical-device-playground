@@ -110,6 +110,7 @@ function App() {
   const [vitals, setVitals] = useState(INITIAL_VITALS);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [alarmLog, setAlarmLog] = useState([]);
+  const [, setAbnormalCounters] = useState({});
   const [deviceStatus, setDeviceStatus] = useState("Connecting");
   const [error, setError] = useState("");
 
@@ -128,7 +129,7 @@ function App() {
   }, [vitals]);
 
   const activeAlarms = vitalStatuses.filter(
-    (vital) => vital.status === "warning" || vital.status === "critical"
+    (vital) => vital.status === "warning" || vital.status === "critical",
   );
 
   async function fetchVitals() {
@@ -143,36 +144,51 @@ function App() {
       const newVitals = normalizeVitals(data);
       const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
 
-      const newAlarmEvents = Object.entries(newVitals)
-        .map(([key, value]) => {
+      const ALARM_CONFIRMATION_READINGS = 3;
+
+      setAbnormalCounters((previousCounters) => {
+        const updatedCounters = {};
+        const newAlarmEvents = [];
+
+        Object.entries(newVitals).forEach(([key, value]) => {
           const config = VITAL_CONFIG[key];
           const status = getVitalStatus(value, config);
 
           if (status === "normal" || status === "unknown") {
-            return null;
+            updatedCounters[key] = 0;
+            return;
           }
 
-          return {
-            id: crypto.randomUUID(),
-            time: formatTime(timestamp),
-            vital: config.label,
-            value,
-            unit: config.unit,
-            severity: status,
-          };
-        })
-        .filter(Boolean);
+          const previousCount = previousCounters[key] ?? 0;
+          const newCount = previousCount + 1;
+
+          updatedCounters[key] = newCount;
+
+          if (newCount === ALARM_CONFIRMATION_READINGS) {
+            newAlarmEvents.push({
+              id: crypto.randomUUID(),
+              time: formatTime(timestamp),
+              vital: config.label,
+              value,
+              unit: config.unit,
+              severity: status,
+            });
+          }
+        });
+
+        if (newAlarmEvents.length > 0) {
+          setAlarmLog((previousLog) =>
+            [...newAlarmEvents, ...previousLog].slice(0, 20),
+          );
+        }
+
+        return updatedCounters;
+      });
 
       setVitals(newVitals);
       setLastUpdate(timestamp);
       setDeviceStatus("Connected");
       setError("");
-
-      if (newAlarmEvents.length > 0) {
-        setAlarmLog((previousLog) =>
-          [...newAlarmEvents, ...previousLog].slice(0, 20)
-        );
-      }
     } catch (err) {
       setDeviceStatus("Disconnected");
       setError("Could not connect to telemetry API.");
@@ -181,150 +197,151 @@ function App() {
   }
 
   useEffect(() => {
-  const initialFetch = setTimeout(() => {
-    fetchVitals();
-  }, 0);
+    const initialFetch = setTimeout(() => {
+      fetchVitals();
+    }, 0);
 
-  const interval = setInterval(() => {
-    fetchVitals();
-  }, 500);
+    const interval = setInterval(() => {
+      fetchVitals();
+    }, 1000);
 
-  return () => {
-    clearTimeout(initialFetch);
-    clearInterval(interval);
-  };
-}, []);
+    return () => {
+      clearTimeout(initialFetch);
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
-  <main className="app">
-    <section className="hero">
-      <div>
-        <p className="eyebrow">Medical Device Playground</p>
-        <h1>Simulated Patient Monitoring Dashboard</h1>
-        <p className="subtitle">
-          Real-time simulated telemetry from an ASP.NET Core backend API,
-          with alarm severity classification and basic event traceability.
-        </p>
-      </div>
-
-      <div className={`connection-card ${deviceStatus.toLowerCase()}`}>
-        <span className="connection-dot" />
+    <main className="app">
+      <section className="hero">
         <div>
-          <strong>{deviceStatus}</strong>
-          <p>Last update: {formatTime(lastUpdate)}</p>
+          <p className="eyebrow">Medical Device Playground</p>
+          <h1>Simulated Patient Monitoring Dashboard</h1>
+          <p className="subtitle">
+            Real-time simulated telemetry from an ASP.NET Core backend API, with
+            alarm severity classification and basic event traceability.
+          </p>
         </div>
-      </div>
-    </section>
 
-    {error && <p className="error-banner">{error}</p>}
-
-    <section className="dashboard-section">
-      <div className="section-header">
-        <h2>Patient and Device Data</h2>
-        <span>Simulation context</span>
-      </div>
-
-      <div className="context-grid">
-        <article className="info-card">
-          <h3>Patient</h3>
-          <p>{PATIENT.name}</p>
-          <span>ID: {PATIENT.id}</span>
-          <span>Age: {PATIENT.age}</span>
-          <span>Location: {PATIENT.location}</span>
-        </article>
-
-        <article className="info-card">
-          <h3>Device</h3>
-          <p>{DEVICE.name}</p>
-          <span>ID: {DEVICE.id}</span>
-          <span>Vendor: {DEVICE.vendor}</span>
-          <span>Status: {deviceStatus}</span>
-          <span>Last update: {formatTime(lastUpdate)}</span>
-        </article>
-      </div>
-    </section>
-
-    <section className="dashboard-section">
-      <div className="section-header">
-        <h2>Vital Signs</h2>
-        <span>Live simulated measurements</span>
-      </div>
-
-      <section className="vitals-grid">
-        {vitalStatuses.map((vital) => (
-          <article key={vital.key} className={`vital-card ${vital.status}`}>
-            <div className="vital-header">
-              <h3>{vital.label}</h3>
-              <span className={`status-badge ${vital.status}`}>
-                {vital.status}
-              </span>
-            </div>
-
-            <p className="vital-value">
-              {vital.value}
-              <span>{vital.unit}</span>
-            </p>
-
-            <p className="range-text">
-              Normal range: {vital.normal[0]} to {vital.normal[1]} {vital.unit}
-            </p>
-          </article>
-        ))}
+        <div className={`connection-card ${deviceStatus.toLowerCase()}`}>
+          <span className="connection-dot" />
+          <div>
+            <strong>{deviceStatus}</strong>
+            <p>Last update: {formatTime(lastUpdate)}</p>
+          </div>
+        </div>
       </section>
-    </section>
 
-    <section className="dashboard-section">
-      <div
-        className={`alarm-summary-card ${
-          activeAlarms.length > 0 ? "has-alarms" : ""
-        }`}
-      >
-        <div>
-          <h2>Alarm Summary</h2>
-          <span>
-            {activeAlarms.length === 0
-              ? "No active alarms"
-              : "Active alarm condition detected"}
-          </span>
+      {error && <p className="error-banner">{error}</p>}
+
+      <section className="dashboard-section">
+        <div className="section-header">
+          <h2>Patient and Device Data</h2>
+          <span>Simulation context</span>
         </div>
 
-        <p>{activeAlarms.length}</p>
-      </div>
-    </section>
+        <div className="context-grid">
+          <article className="info-card">
+            <h3>Patient</h3>
+            <p>{PATIENT.name}</p>
+            <span>ID: {PATIENT.id}</span>
+            <span>Age: {PATIENT.age}</span>
+            <span>Location: {PATIENT.location}</span>
+          </article>
 
-    <section className="alarm-log">
-      <div className="section-header">
-  <div>
-    <h2>Alarm Log</h2>
-    <span>Last 20 events</span>
-  </div>
+          <article className="info-card">
+            <h3>Device</h3>
+            <p>{DEVICE.name}</p>
+            <span>ID: {DEVICE.id}</span>
+            <span>Vendor: {DEVICE.vendor}</span>
+            <span>Status: {deviceStatus}</span>
+            <span>Last update: {formatTime(lastUpdate)}</span>
+          </article>
+        </div>
+      </section>
 
-  <button
-    className="clear-log-button"
-    onClick={() => setAlarmLog([])}
-    disabled={alarmLog.length === 0}
-  >
-    Clear log
-  </button>
-</div>
+      <section className="dashboard-section">
+        <div className="section-header">
+          <h2>Vital Signs</h2>
+          <span>Live simulated measurements</span>
+        </div>
 
-      {alarmLog.length === 0 ? (
-        <p className="empty-log">No alarm events recorded yet.</p>
-      ) : (
-        <div className="log-list">
-          {alarmLog.map((event) => (
-            <article key={event.id} className={`log-item ${event.severity}`}>
-              <span>{event.time}</span>
-              <strong>{event.severity.toUpperCase()}</strong>
-              <p>
-                {event.vital}: {event.value} {event.unit}
+        <section className="vitals-grid">
+          {vitalStatuses.map((vital) => (
+            <article key={vital.key} className={`vital-card ${vital.status}`}>
+              <div className="vital-header">
+                <h3>{vital.label}</h3>
+                <span className={`status-badge ${vital.status}`}>
+                  {vital.status}
+                </span>
+              </div>
+
+              <p className="vital-value">
+                {vital.value}
+                <span>{vital.unit}</span>
+              </p>
+
+              <p className="range-text">
+                Normal range: {vital.normal[0]} to {vital.normal[1]}{" "}
+                {vital.unit}
               </p>
             </article>
           ))}
+        </section>
+      </section>
+
+      <section className="dashboard-section">
+        <div
+          className={`alarm-summary-card ${
+            activeAlarms.length > 0 ? "has-alarms" : ""
+          }`}
+        >
+          <div>
+            <h2>Alarm Summary</h2>
+            <span>
+              {activeAlarms.length === 0
+                ? "No active alarms"
+                : "Active alarm condition detected"}
+            </span>
+          </div>
+
+          <p>{activeAlarms.length}</p>
         </div>
-      )}
-    </section>
-  </main>
+      </section>
+
+      <section className="alarm-log">
+        <div className="section-header">
+          <div>
+            <h2>Alarm Log</h2>
+            <span>Last 20 events</span>
+          </div>
+
+          <button
+            className="clear-log-button"
+            onClick={() => setAlarmLog([])}
+            disabled={alarmLog.length === 0}
+          >
+            Clear log
+          </button>
+        </div>
+
+        {alarmLog.length === 0 ? (
+          <p className="empty-log">No alarm events recorded yet.</p>
+        ) : (
+          <div className="log-list">
+            {alarmLog.map((event) => (
+              <article key={event.id} className={`log-item ${event.severity}`}>
+                <span>{event.time}</span>
+                <strong>{event.severity.toUpperCase()}</strong>
+                <p>
+                  {event.vital}: {event.value} {event.unit}
+                </p>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
   );
 }
 
