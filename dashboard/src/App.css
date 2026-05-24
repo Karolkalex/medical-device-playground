@@ -322,3 +322,41 @@ h1 {
   background: rgba(148, 163, 184, 0.15);
   color: #cbd5e1;
 }
+
+.info-card h3,
+.vital-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.dashboard-section {
+  margin-top: 1.5rem;
+}
+
+.alarm-summary-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 18px;
+  padding: 1.25rem;
+}
+
+.alarm-summary-card h2 {
+  margin: 0 0 0.25rem;
+}
+
+.alarm-summary-card span {
+  color: #9ca3af;
+}
+
+.alarm-summary-card p {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.alarm-summary-card.has-alarms {
+  border-color: #f59e0b;
+}

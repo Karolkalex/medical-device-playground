@@ -187,7 +187,7 @@ function App() {
 
   const interval = setInterval(() => {
     fetchVitals();
-  }, 3000);
+  }, 1000);
 
   return () => {
     clearTimeout(initialFetch);
@@ -196,31 +196,37 @@ function App() {
 }, []);
 
   return (
-    <main className="app">
-      <section className="hero">
+  <main className="app">
+    <section className="hero">
+      <div>
+        <p className="eyebrow">Medical Device Playground</p>
+        <h1>Simulated Patient Monitoring Dashboard</h1>
+        <p className="subtitle">
+          Real-time simulated telemetry from an ASP.NET Core backend API,
+          with alarm severity classification and basic event traceability.
+        </p>
+      </div>
+
+      <div className={`connection-card ${deviceStatus.toLowerCase()}`}>
+        <span className="connection-dot" />
         <div>
-          <p className="eyebrow">Medical Device Playground</p>
-          <h1>Simulated Patient Monitoring Dashboard</h1>
-          <p className="subtitle">
-            Real-time simulated telemetry from an ASP.NET Core backend API,
-            with alarm severity classification and basic event traceability.
-          </p>
+          <strong>{deviceStatus}</strong>
+          <p>Last update: {formatTime(lastUpdate)}</p>
         </div>
+      </div>
+    </section>
 
-        <div className={`connection-card ${deviceStatus.toLowerCase()}`}>
-          <span className="connection-dot" />
-          <div>
-            <strong>{deviceStatus}</strong>
-            <p>Last update: {formatTime(lastUpdate)}</p>
-          </div>
-        </div>
-      </section>
+    {error && <p className="error-banner">{error}</p>}
 
-      {error && <p className="error-banner">{error}</p>}
+    <section className="dashboard-section">
+      <div className="section-header">
+        <h2>Patient and Device Data</h2>
+        <span>Simulation context</span>
+      </div>
 
-      <section className="context-grid">
+      <div className="context-grid">
         <article className="info-card">
-          <h2>Patient</h2>
+          <h3>Patient</h3>
           <p>{PATIENT.name}</p>
           <span>ID: {PATIENT.id}</span>
           <span>Age: {PATIENT.age}</span>
@@ -228,33 +234,27 @@ function App() {
         </article>
 
         <article className="info-card">
-          <h2>Device</h2>
+          <h3>Device</h3>
           <p>{DEVICE.name}</p>
           <span>ID: {DEVICE.id}</span>
           <span>Vendor: {DEVICE.vendor}</span>
           <span>Status: {deviceStatus}</span>
+          <span>Last update: {formatTime(lastUpdate)}</span>
         </article>
+      </div>
+    </section>
 
-        <article
-          className={`summary-card ${
-            activeAlarms.length > 0 ? "has-alarms" : ""
-          }`}
-        >
-          <h2>Alarm Summary</h2>
-          <p>{activeAlarms.length}</p>
-          <span>
-            {activeAlarms.length === 0
-              ? "No active alarms"
-              : "Active alarm condition detected"}
-          </span>
-        </article>
-      </section>
+    <section className="dashboard-section">
+      <div className="section-header">
+        <h2>Vital Signs</h2>
+        <span>Live simulated measurements</span>
+      </div>
 
       <section className="vitals-grid">
         {vitalStatuses.map((vital) => (
           <article key={vital.key} className={`vital-card ${vital.status}`}>
             <div className="vital-header">
-              <h2>{vital.label}</h2>
+              <h3>{vital.label}</h3>
               <span className={`status-badge ${vital.status}`}>
                 {vital.status}
               </span>
@@ -271,30 +271,50 @@ function App() {
           </article>
         ))}
       </section>
+    </section>
 
-      <section className="alarm-log">
-        <div className="section-header">
-          <h2>Alarm Log</h2>
-          <span>Last 20 events</span>
+    <section className="dashboard-section">
+      <div
+        className={`alarm-summary-card ${
+          activeAlarms.length > 0 ? "has-alarms" : ""
+        }`}
+      >
+        <div>
+          <h2>Alarm Summary</h2>
+          <span>
+            {activeAlarms.length === 0
+              ? "No active alarms"
+              : "Active alarm condition detected"}
+          </span>
         </div>
 
-        {alarmLog.length === 0 ? (
-          <p className="empty-log">No alarm events recorded yet.</p>
-        ) : (
-          <div className="log-list">
-            {alarmLog.map((event) => (
-              <article key={event.id} className={`log-item ${event.severity}`}>
-                <span>{event.time}</span>
-                <strong>{event.severity.toUpperCase()}</strong>
-                <p>
-                  {event.vital}: {event.value} {event.unit}
-                </p>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-    </main>
+        <p>{activeAlarms.length}</p>
+      </div>
+    </section>
+
+    <section className="alarm-log">
+      <div className="section-header">
+        <h2>Alarm Log</h2>
+        <span>Last 20 events</span>
+      </div>
+
+      {alarmLog.length === 0 ? (
+        <p className="empty-log">No alarm events recorded yet.</p>
+      ) : (
+        <div className="log-list">
+          {alarmLog.map((event) => (
+            <article key={event.id} className={`log-item ${event.severity}`}>
+              <span>{event.time}</span>
+              <strong>{event.severity.toUpperCase()}</strong>
+              <p>
+                {event.vital}: {event.value} {event.unit}
+              </p>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  </main>
   );
 }
 
