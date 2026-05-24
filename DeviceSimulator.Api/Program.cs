@@ -60,7 +60,25 @@ app.MapGet("/vitals", () =>
         abnormalHighMax: 155
     );
 
-    var diastolic = Random.Shared.Next(65, 90);
+    var diastolic = GenerateOccasionalAbnormalValue(
+        normalMin: 65,
+        normalMax: 85,
+        abnormalLowMin: 45,
+        abnormalLowMax: 59,
+        abnormalHighMin: 91,
+        abnormalHighMax: 105
+    );
+
+    var respiratoryRate = GenerateOccasionalAbnormalValue(
+        normalMin: 12,
+        normalMax: 20,
+        abnormalLowMin: 8,
+        abnormalLowMax: 11,
+        abnormalHighMin: 21,
+        abnormalHighMax: 32
+    );
+
+    var temperature = GenerateOccasionalAbnormalTemperature();
 
     return new VitalSigns
     {
@@ -69,9 +87,30 @@ app.MapGet("/vitals", () =>
         Spo2 = spo2,
         Systolic = systolic,
         Diastolic = diastolic,
+        RespiratoryRate = respiratoryRate,
+        Temperature = temperature,
         Timestamp = DateTime.UtcNow
     };
 });
+
+static double GenerateOccasionalAbnormalTemperature()
+{
+    var shouldGenerateAbnormal = Random.Shared.NextDouble() < 0.25;
+
+    if (!shouldGenerateAbnormal)
+    {
+        return Math.Round(36.0 + Random.Shared.NextDouble() * 1.5, 1);
+    }
+
+    var shouldGenerateLow = Random.Shared.Next(0, 2) == 0;
+
+    if (shouldGenerateLow)
+    {
+        return Math.Round(34.5 + Random.Shared.NextDouble() * 1.4, 1);
+    }
+
+    return Math.Round(37.6 + Random.Shared.NextDouble() * 1.9, 1);
+}
 
 static int GenerateOccasionalAbnormalValue(
     int normalMin,

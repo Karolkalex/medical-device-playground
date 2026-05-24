@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
+const API_URL = "http://localhost:5086/vitals";
+
 const PATIENT = {
   id: "P-001",
   name: "Simulated Patient",
@@ -10,9 +12,8 @@ const PATIENT = {
 
 const DEVICE = {
   id: "MON-001",
-  name: "Multiparametric Monitor",
+  name: "Multiparameter Monitor",
   vendor: "Simulated Mindray",
-  status: "Connected",
 };
 
 const VITAL_CONFIG = {
@@ -28,13 +29,13 @@ const VITAL_CONFIG = {
     normal: [95, 100],
     warning: [90, 100],
   },
-  systolicBP: {
+  systolic: {
     label: "Systolic BP",
     unit: "mmHg",
     normal: [90, 120],
     warning: [80, 140],
   },
-  diastolicBP: {
+  diastolic: {
     label: "Diastolic BP",
     unit: "mmHg",
     normal: [60, 80],
@@ -54,23 +55,20 @@ const VITAL_CONFIG = {
   },
 };
 
-function getRandomNumber(min, max, decimals = 0) {
-  const value = Math.random() * (max - min) + min;
-  return Number(value.toFixed(decimals));
-}
-
-function generateVitals() {
-  return {
-    heartRate: getRandomNumber(45, 145),
-    spo2: getRandomNumber(82, 100),
-    systolicBP: getRandomNumber(75, 160),
-    diastolicBP: getRandomNumber(45, 105),
-    respiratoryRate: getRandomNumber(8, 32),
-    temperature: getRandomNumber(34.5, 39.5, 1),
-  };
-}
+const INITIAL_VITALS = {
+  heartRate: "--",
+  spo2: "--",
+  systolic: "--",
+  diastolic: "--",
+  respiratoryRate: "--",
+  temperature: "--",
+};
 
 function getVitalStatus(value, config) {
+  if (typeof value !== "number") {
+    return "unknown";
+  }
+
   const [normalMin, normalMax] = config.normal;
   const [warningMin, warningMax] = config.warning;
 
@@ -86,6 +84,10 @@ function getVitalStatus(value, config) {
 }
 
 function formatTime(date) {
+  if (!date) {
+    return "--";
+  }
+
   return date.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
@@ -93,10 +95,23 @@ function formatTime(date) {
   });
 }
 
+function normalizeVitals(apiData) {
+  return {
+    heartRate: apiData.heartRate,
+    spo2: apiData.spo2,
+    systolic: apiData.systolic,
+    diastolic: apiData.diastolic,
+    respiratoryRate: apiData.respiratoryRate,
+    temperature: apiData.temperature,
+  };
+}
+
 function App() {
-  const [vitals, setVitals] = useState(generateVitals());
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [vitals, setVitals] = useState(INITIAL_VITALS);
+  const [lastUpdate, setLastUpdate] = useState(null);
   const [alarmLog, setAlarmLog] = useState([]);
+  const [deviceStatus, setDeviceStatus] = useState("Connecting");
+  const [error, setError] = useState("");
 
   const vitalStatuses = useMemo(() => {
     return Object.entries(vitals).map(([key, value]) => {
@@ -112,19 +127,28 @@ function App() {
     });
   }, [vitals]);
 
-  const activeAlarms = vitalStatuses.filter((vital) => vital.status !== "normal");
+  const activeAlarms = vitalStatuses.filter(
+    (vital) => vital.status === "warning" || vital.status === "critical"
+  );
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newVitals = generateVitals();
-      const timestamp = new Date();
+  async function fetchVitals() {
+    try {
+      const response = await fetch(API_URL);
+
+      if (!response.ok) {
+        throw new Error(`API responded with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      const newVitals = normalizeVitals(data);
+      const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();
 
       const newAlarmEvents = Object.entries(newVitals)
         .map(([key, value]) => {
           const config = VITAL_CONFIG[key];
           const status = getVitalStatus(value, config);
 
-          if (status === "normal") {
+          if (status === "normal" || status === "unknown") {
             return null;
           }
 
@@ -141,16 +165,35 @@ function App() {
 
       setVitals(newVitals);
       setLastUpdate(timestamp);
+      setDeviceStatus("Connected");
+      setError("");
 
       if (newAlarmEvents.length > 0) {
         setAlarmLog((previousLog) =>
           [...newAlarmEvents, ...previousLog].slice(0, 20)
         );
       }
-    }, 3000);
+    } catch (err) {
+      setDeviceStatus("Disconnected");
+      setError("Could not connect to telemetry API.");
+      console.error(err);
+    }
+  }
 
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => {
+  const initialFetch = setTimeout(() => {
+    fetchVitals();
+  }, 0);
+
+  const interval = setInterval(() => {
+    fetchVitals();
+  }, 3000);
+
+  return () => {
+    clearTimeout(initialFetch);
+    clearInterval(interval);
+  };
+}, []);
 
   return (
     <main className="app">
@@ -159,19 +202,21 @@ function App() {
           <p className="eyebrow">Medical Device Playground</p>
           <h1>Simulated Patient Monitoring Dashboard</h1>
           <p className="subtitle">
-            Random vital signs, range-based alarms, severity classification, and
-            basic event traceability.
+            Real-time simulated telemetry from an ASP.NET Core backend API,
+            with alarm severity classification and basic event traceability.
           </p>
         </div>
 
-        <div className="connection-card">
+        <div className={`connection-card ${deviceStatus.toLowerCase()}`}>
           <span className="connection-dot" />
           <div>
-            <strong>{DEVICE.status}</strong>
+            <strong>{deviceStatus}</strong>
             <p>Last update: {formatTime(lastUpdate)}</p>
           </div>
         </div>
       </section>
+
+      {error && <p className="error-banner">{error}</p>}
 
       <section className="context-grid">
         <article className="info-card">
@@ -187,10 +232,14 @@ function App() {
           <p>{DEVICE.name}</p>
           <span>ID: {DEVICE.id}</span>
           <span>Vendor: {DEVICE.vendor}</span>
-          <span>Status: {DEVICE.status}</span>
+          <span>Status: {deviceStatus}</span>
         </article>
 
-        <article className={`summary-card ${activeAlarms.length > 0 ? "has-alarms" : ""}`}>
+        <article
+          className={`summary-card ${
+            activeAlarms.length > 0 ? "has-alarms" : ""
+          }`}
+        >
           <h2>Alarm Summary</h2>
           <p>{activeAlarms.length}</p>
           <span>

@@ -8,10 +8,10 @@ Medical Device Playground is a full-stack healthcare technology project built to
 
 The project currently includes:
 
-* ASP.NET Core backend API
-* React monitoring dashboard
+* ASP.NET Core backend API serving simulated telemetry
+* React monitoring dashboard consuming backend data
 * Simulated patient telemetry
-* Real-time vital sign updates
+* Real-time vital sign polling
 * Patient and device context
 * Alarm severity classification
 * Basic alarm event log
@@ -23,18 +23,18 @@ The long-term goal is to expand the platform into a broader interoperability and
 
 ## Current Version
 
-### v1.1
+### v1.2
 
-This version adds more clinical and integration context to the monitoring dashboard.
+This version connects the React dashboard to the ASP.NET Core backend API.
 
 Main additions:
 
-* Simulated patient information
-* Simulated device information
-* Alarm severity levels: normal, warning, critical
-* Alarm summary panel
-* Alarm event log with timestamps
-* Improved dashboard layout
+* Frontend telemetry polling from the `/vitals` endpoint
+* Backend-generated simulated vital signs
+* Patient telemetry returned as JSON
+* Respiratory rate and temperature added to the backend model
+* Dashboard alarm logic based on API data
+* Device connection status based on API availability
 
 ---
 
@@ -45,25 +45,29 @@ Main additions:
 * ASP.NET Core Web API
 * Simulated patient telemetry endpoint
 * Dynamic vital sign generation
+* Occasional abnormal value generation
 * JSON-based API responses
+* Basic CORS configuration for local frontend access
 
 ### Frontend
 
 * React + Vite dashboard
-* Real-time telemetry polling / simulated updates
+* Telemetry polling from the backend API
 * Monitor-inspired UI
 * Patient context display
 * Device context display
 * Vital sign status indicators
 * Alarm severity classification
 * Alarm event log
+* Device connection status display
 * Responsive layout
 
 ### Simulated Vitals
 
 * Heart rate
 * SpO₂
-* Blood pressure
+* Systolic blood pressure
+* Diastolic blood pressure
 * Respiratory rate
 * Temperature
 * Timestamped telemetry
@@ -79,6 +83,25 @@ Alarm states include:
 * Critical
 
 The app also stores recent alarm events in a basic log to simulate clinical event traceability.
+
+---
+
+## Roadmap
+
+Planned features include:
+
+* Vital sign trend charts
+* ECG waveform simulation
+* Multi-patient monitoring
+* Simulated device connection states
+* SignalR real-time streaming
+* Exportable alarm logs
+* HL7 ORU message generation
+* FHIR Observation examples
+* FHIR interoperability experiments
+* Docker support
+* Database integration
+* Clinical workflow simulation
 
 ---
 
@@ -113,3 +136,4 @@ medical-device-playground/
 ├── dashboard/
 │
 └── MedicalDevicePlayground.sln
+```
